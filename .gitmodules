@@ -1,0 +1,3 @@
+[submodule "leapjs"]
+	path = leapjs
+	url = git://github.com/leapmotion/leapjs.git
