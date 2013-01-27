@@ -35,10 +35,12 @@ function particle(x, y) {
       .remove();
 }
 
+var pointer;
 Leap.loop(function(frame) {
-  if (frame.pointables.length > 0) {
-    posX = originX + translateXScreenDistance(frame.pointables[0].tipPosition[0]);
-    posY = originY + translateYScreenDistance(frame.pointables[0].tipPosition[1]);
+  for (var i = 0; i < frame.pointables.length; i++) {
+    pointer = frame.pointables[i];
+    posX = originX + translateXScreenDistance(pointer.tipPosition[0]);
+    posY = originY + translateYScreenDistance(pointer.tipPosition[1]);
     particle(posX, posY);
   }
 });
