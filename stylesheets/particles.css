@@ -1,0 +1,13 @@
+body {
+  background: #fff;
+}
+
+circle {
+  fill: none;
+  stroke-width: 1.5px;
+}
+
+svg {
+    background: #222;
+    width: 100%;
+}
