@@ -1,12 +1,7 @@
-var w = 960,
-    h = 650,
-    z = d3.scale.category20c(),
+var z = d3.scale.category20c(),
     i = 0;
 
 var svg = d3.select("body").append("svg:svg")
-    .attr("width", w)
-    .attr("height", h)
-    .style("pointer-events", "all")
     .on("mousemove", particle);
 
 function particle() {
@@ -25,3 +20,7 @@ function particle() {
       .style("stroke-opacity", 1e-6)
       .remove();
 }
+
+//Leap.loop(function(frame) {
+//
+//});

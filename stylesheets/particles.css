@@ -10,4 +10,6 @@ circle {
 svg {
     background: #222;
     width: 100%;
+    height: 650px;
+    pointer-events: all;
 }
