@@ -1,15 +1,29 @@
 var z = d3.scale.category20c(),
     i = 0;
 
-var svg = d3.select("body").append("svg:svg")
-    .on("mousemove", particle);
+// original position
+var originX = 600;
+var originY = 300;
+var posX, posY;
 
-function particle() {
-  var m = d3.mouse(this);
+var maxX = 600;
+var maxY = 300;
+var maxSpan = 100;
 
+function translateXScreenDistance(distance) {
+  return (distance / maxSpan) * maxX;
+}
+
+function translateYScreenDistance(distance) {
+  return maxY - ((distance / maxSpan) * maxY);
+}
+
+var svg = d3.select("body").append("svg:svg");
+
+function particle(x, y) {
   svg.append("svg:circle")
-      .attr("cx", m[0])
-      .attr("cy", m[1])
+      .attr("cx", x)
+      .attr("cy", y)
       .attr("r", 1e-6)
       .style("stroke", z(++i))
       .style("stroke-opacity", 1)
@@ -21,6 +35,10 @@ function particle() {
       .remove();
 }
 
-//Leap.loop(function(frame) {
-//
-//});
+Leap.loop(function(frame) {
+  if (frame.pointables.length > 0) {
+    posX = originX + translateXScreenDistance(frame.pointables[0].tipPosition[0]);
+    posY = originY + translateYScreenDistance(frame.pointables[0].tipPosition[1]);
+    particle(posX, posY);
+  }
+});
