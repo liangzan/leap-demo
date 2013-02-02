@@ -1,112 +1,93 @@
-var oldX; var oldY;
-var canvas;
-var ctx;
+// original position
+var originX = 600;
+var originY = 300;
 var _r = new DollarRecognizer();
+var posX, posY, ctx, canvas, translatedX, translatedY;
+var prevX = 0;
+var prevY = 0;
 var _points = [];
-var isMouseDown = false; // mouse only bool
-var threshold = 3; // number of pixels required to be moved for a movement to count
+var maxX = 600;
+var maxY = 300;
+var maxSpan = 100;
+var z = d3.scale.category20c();
+var i = 0;
+var svg;
 
+$(document).ready(function() {
+  svg = d3.select("body").append("svg:svg");
+});
 
-document.addEventListener('touchstart', function(e) {
-  e.preventDefault();
-  _points = [];
-  var touch = e.touches[0];
-  ctx.beginPath();
-  ctx.strokeStyle = "#bae1ff";
-  ctx.lineCap = "round";
-  ctx.lineJoin = "round";
-  ctx.lineWidth = 6;
-  oldX = touch.pageX;
-  oldY = touch.pageY;
-}, false);
+function translateX(distance) {
+  return Math.floor((distance / maxSpan) * maxX);
+}
 
-document.addEventListener('touchmove', function(e) {
-  if (oldX - e.pageX < 3 && oldX - e.pageX > -3) {
-    return;
+function translateY(distance) {
+  return Math.floor(maxY - ((distance / maxSpan) * maxY));
+}
+
+function particle(x, y) {
+  svg.append("svg:circle")
+      .attr("cx", x)
+      .attr("cy", y)
+      .attr("r", 1e-6)
+      .style("stroke", z(++i))
+      .style("stroke-opacity", 1)
+    .transition()
+      .duration(2000)
+      .ease(Math.sqrt)
+      .attr("r", 100)
+      .style("stroke-opacity", 1e-6)
+      .remove();
+}
+
+var draw = function(posX, posY) {
+  translatedX = originX + translateX(posX);
+  translatedY = originY + translateY(posY);
+  particle(translatedX, translatedY);
+};
+
+var pointMove = function(frame) {
+  var pointer = frame.pointables[0];
+  posX = pointer.tipPosition[0];
+  posY = pointer.tipPosition[1];
+  if (Math.abs(posX - prevX) > 3 || Math.abs(posY - prevY) > 3) {
+    _points.push(new Point(posX, posY));
+    prevX = posX;
+    prevY = prevY;
+    draw(posX, posY);
   }
-  if (oldY - e.pageY < 3 && oldY - e.pageY > -3) {
-    return;
-  }
-  var touch = e.touches[0];
-  ctx.moveTo(oldX,oldY);
-  oldX = touch.pageX;
-  oldY = touch.pageY;
-  ctx.lineTo(oldX,oldY);
-  ctx.stroke();
-  ctx.shadowColor = 'rgba(169,236,255,0.25)';
-  ctx.shadowOffsetX = 0;
-  ctx.shadowOffsetY = 0;
-  ctx.shadowBlur = 10;
-  _points[_points.length] = new Point(oldX,oldY);
-}, false);
+};
 
-document.addEventListener('touchend', function(e) {
-  ctx.closePath();
-  if (_points.length >= 10) {
+var pointStart = function(frame) {
+};
+
+var pointEnd = function(frame) {
+  if (_points.length > 10) {
     var result = _r.Recognize(_points);
     $("#shapeOutput").text(result.Name);
     $("#mathOutput").text(Math.round(result.Score*100) + "%");
   }
   _points = [];
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-}, false);
+};
 
-window.addEventListener("load", function(e) {
-  canvas = document.getElementById("canvas");
-  ctx = canvas.getContext("2d");
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-  shadowWrapper.width = window.innerWidth;
-  shadowWrapper.height = window.innerHeight;
-}, false);
-
-
-
-
-// MOUSE BINDS FOR THE HELL OF IT
-document.addEventListener('mousedown', function(e) {
-  isMouseDown = true;
-  e.preventDefault();
-  _points = [];
-  ctx.beginPath();
-  ctx.strokeStyle = "#bae1ff";
-  ctx.lineCap = "round";
-  ctx.lineJoin = "round";
-  ctx.lineWidth = 6;
-  ctx.shadowColor = 'rgba(169,236,255,0.1)';
-  ctx.shadowOffsetX = 0;
-  ctx.shadowOffsetY = 0;
-  ctx.shadowBlur = 10;
-  oldX = e.pageX;
-  oldY = e.pageY;
-}, false);
-
-document.addEventListener('mousemove', function(e) {
-  if (!isMouseDown) {
-    return;
+var fsm = StateMachine.create({
+  initial: 'fist',
+  events: [
+    { name: 'pointstart', from: 'fist',  to: 'point' },
+    { name: 'pointend', from: 'point', to: 'fist' }
+  ],
+  callbacks: {
+    onpointstart: pointStart,
+    onpointend: pointEnd
   }
-  if (oldX - e.pageX < 3 && oldX - e.pageX > -3) {
-    return;
-  }
-  if (oldY - e.pageY < 3 && oldY - e.pageY > -3) {
-    return;
-  }
-  ctx.moveTo(oldX,oldY);
-  oldX = e.pageX;
-  oldY = e.pageY;
-  ctx.lineTo(oldX,oldY);
-  ctx.stroke();
-  _points[_points.length] = new Point(oldX,oldY);
-}, false);
+});
 
-document.addEventListener('mouseup', function(e) {
-  isMouseDown = false;
-  ctx.closePath();
-  if (_points.length >= 10) {
-    var result = _r.Recognize(_points);
-    $("#shapeOutput").text(result.Name);
-    $("#mathOutput").text(Math.round(result.Score*100) + "%");
+Leap.loop(function(frame) {
+  if (frame.pointables.length === 0 && fsm.current === 'point') {
+    fsm.pointend(frame);
+  } else if (frame.pointables.length === 1 && fsm.current === 'fist') {
+    fsm.pointstart(frame);
+  } else if (frame.pointables.length === 1 && fsm.current == 'point') {
+    pointMove(frame);
   }
-  _points = [];
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-}, false);
+});
